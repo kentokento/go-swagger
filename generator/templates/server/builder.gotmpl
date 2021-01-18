@@ -46,7 +46,7 @@ func New{{ pascalize .Name }}API(spec *loads.Document) *{{ pascalize .Name }}API
     ServeError:             errors.ServeError,
     BasicAuthenticator:     security.BasicAuth,
     APIKeyAuthenticator:    security.APIKeyAuth,
-    BearerAuthenticator:    security.BearerAuth,
+    BearerAuthenticator:    security.BearerAuthCtx,
     {{ range .Consumes }}
       {{- if .Implementation }}
         {{ pascalize .Name }}Consumer: {{ .Implementation }},
@@ -126,7 +126,7 @@ type {{ pascalize .Name }}API struct {
 
   // BearerAuthenticator generates a runtime.Authenticator from the supplied bearer token auth function.
   // It has a default implementation in the security package, however you can replace it for your particular usage.
-  BearerAuthenticator func(string, security.ScopedTokenAuthentication) runtime.Authenticator
+  BearerAuthenticator func(string, security.ScopedTokenAuthenticationCtx) runtime.Authenticator
   {{ range .Consumes }}
   // {{ pascalize .Name }}Consumer registers a consumer for the following mime types:
     {{- range .AllSerializers }}
@@ -290,8 +290,8 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}API) AuthenticatorsFor(schemes map
         }{{ end }})
         {{- end }}
         {{- if .IsOAuth2 }}
-        result[name] = {{.ReceiverName}}.BearerAuthenticator(name, {{ if not ( eq .Principal "interface{}" ) }}func(token string, scopes []string) (interface{}, error) {
-          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "interface{}" ) }}(token, scopes)
+        result[name] = {{.ReceiverName}}.BearerAuthenticator(name, {{ if not ( eq .Principal "interface{}" ) }}func(ctx context.Context, token string, scopes []string) (interface{}, error) {
+          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "interface{}" ) }}(ctx, token, scopes)
         }{{ end }})
         {{- end }}
       {{end}}
